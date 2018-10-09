@@ -25,6 +25,9 @@ namespace TaiwuModLoader
             string name
         );
 
+        [DllImport("mono.dll", EntryPoint = "mono_images_init")]
+        internal static extern void MonoInitImages();
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr LoadLibrary(string dllPath);
 
@@ -41,6 +44,7 @@ namespace TaiwuModLoader
 
                 // load mono library and open the assembly
                 LoadLibrary(monoPath);
+                MonoInitImages();
                 var pImage = MonoOpenImage(pData, (uint)assemblyData.Length, false, IntPtr.Zero, false, assemblyPath);
                 MonoImage loadedImage = (MonoImage)Marshal.PtrToStructure(pImage, typeof(MonoImage));
 
