@@ -33,26 +33,38 @@ namespace TaiwuModLoader
             // load the assembly image
             byte[] assemblyData = AssemblyLoader.LoadImage(@"Mono\EmbedRuntime\mono.dll", originalPath);
 
-            // patch the assembly image
+            // prepare the assembly image
             ModuleDefMD assembly = ModuleDefMD.Load(assemblyData);
 
             TypeDef targetClass = assembly.Types.FirstOrDefault((TypeDef x) => x.FullName == "DateFile");
             MethodDef targetMethod = targetClass.Methods.FirstOrDefault((MethodDef x) => x.Name == "Awake");
 
             Type modManagerType = typeof(UnityModManager);
-            ModuleDefMD moduleDefMD = ModuleDefMD.Load(modManagerType.Module);
-            TypeDef modManager = moduleDefMD.Types.First((TypeDef x) => x.Name == modManagerType.Name);
-            modManager.Fields.First((FieldDef x) => x.Name == "modsDirname").Constant.Value = "Mods";
-            modManager.Fields.First((FieldDef x) => x.Name == "infoFilename").Constant.Value = "Info.json";
-            moduleDefMD.Types.Remove(modManager);
-            assembly.Types.Add(modManager);
-            Instruction instr = OpCodes.Call.ToInstruction(modManager.Methods.First((MethodDef x) => x.Name == "Start"));
-            targetMethod.Body.Instructions.Insert(targetMethod.Body.Instructions.Count - 1, instr);
-
-            // write the patched assembly image
             string patchedPath = originalPath.Replace(originalFilename, patchedFilename);
-            assembly.Write(patchedPath);
-            Console.WriteLine(string.Format("Assembly patched: {0}", patchedPath));
+
+            TypeDef modManagerInjected = assembly.Types.FirstOrDefault((TypeDef x) => x.Name == modManagerType.Name);
+            if (modManagerInjected == null)
+            {
+                // patch the assembly image if the image has not been injected with UMM
+                ModuleDefMD moduleDefMD = ModuleDefMD.Load(modManagerType.Module);
+                TypeDef modManager = moduleDefMD.Types.First((TypeDef x) => x.Name == modManagerType.Name);
+                modManager.Fields.First((FieldDef x) => x.Name == "modsDirname").Constant.Value = "Mods";
+                modManager.Fields.First((FieldDef x) => x.Name == "infoFilename").Constant.Value = "Info.json";
+                moduleDefMD.Types.Remove(modManager);
+                assembly.Types.Add(modManager);
+                Instruction instr = OpCodes.Call.ToInstruction(modManager.Methods.First((MethodDef x) => x.Name == "Start"));
+                targetMethod.Body.Instructions.Insert(targetMethod.Body.Instructions.Count - 1, instr);
+
+                // write the patched assembly image
+                assembly.Write(patchedPath);
+                Console.WriteLine(string.Format("Write patched assembly: {0}", patchedPath));
+            }
+            else
+            {
+                // write the loaded assembly image if the image has already been patched
+                File.WriteAllBytes(patchedPath, assemblyData);
+                Console.WriteLine(string.Format("Assembly has already been patched: {0}", patchedPath));
+            }
 
             // copy library
             string libraryPath = originalPath.Replace(originalFilename, "");
