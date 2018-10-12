@@ -3,7 +3,7 @@
 #---------------------------------#
 
 # version format
-version: 1.0.{build}
+version: 1.0.{build}.0
 
 # branches to build
 branches:
@@ -11,6 +11,9 @@ branches:
   only:
     - develop
     - master
+
+# Do not build on tags (GitHub and BitBucket)
+skip_tags: true
 
 # Do not build feature branch with open Pull Requests
 skip_branch_with_pr: true
@@ -84,4 +87,19 @@ test: off
 artifacts:
   # pushing entire folder as a zip archive
   - path: Loader\bin\$(configuration)
-    name: Loader
+    name: Loader.$(appveyor_build_version)
+
+#---------------------------------#
+#     deployment configuration    #
+#---------------------------------#
+
+deploy:
+  # Deploy to GitHub Releases
+  - provider: GitHub
+    auth_token:
+      secure: 6Jw1HZU3mF2CMu/+BXVHaXEdtKM69hbivKfapHgB5ChyaSQWh/Ythrw4IQ+4d/1t
+    tag: $(appveyor_build_version)
+    release: 自动发布 v$(appveyor_build_version)
+    prerelease: true
+    on:
+      branch: master
