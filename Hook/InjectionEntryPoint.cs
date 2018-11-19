@@ -90,12 +90,18 @@ namespace TaiwuModLoader
         IntPtr MonoOpenImage_Hook(IntPtr data, uint dataLen, bool needCopy, IntPtr status, bool refOnly, string name)
         {
             const string originalFilename = @"Assembly-CSharp.dll";
-            const string dumpedFilename = @"Assembly-CSharp-Patched.dll";
-            
+            const string overrideFilename = @"Assembly-CSharp-Override.dll";
+
             if (name.EndsWith(originalFilename))
             {
+                string dumpedFilename = @"Assembly-CSharp-Patched.dll";
+
                 var originalPath = name;
+                string overridePath = originalPath.Replace(originalFilename, overrideFilename);
+                if (File.Exists(overridePath)) dumpedFilename = overrideFilename;
+
                 var patchedPath = originalPath.Replace(originalFilename, dumpedFilename);
+
                 _server.OutputMessage(string.Format("Detour {0} to: {1}", originalFilename, dumpedFilename));
                 
                 byte[] assemblyData = File.ReadAllBytes(patchedPath);
